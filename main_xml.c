@@ -4,8 +4,6 @@
 #include <string.h>
 #include <time.h>
 #include <math.h>
-#include <libxml/parser.h>
-#include <libxml/tree.h>
 
 // Структура для хранения временной метки с микросекундами
 typedef struct {
@@ -86,21 +84,44 @@ double get_xml_double(const char *str) {
     return atof(str);
 }
 
-// ФУНКЦИЯ ДЛЯ ПАРСИНГА XML
+// ФУНКЦИЯ ДЛЯ ИЗВЛЕЧЕНИЯ ТЕГА ИЗ XML СТРОКИ
+char* extract_xml_tag(const char *xml_str, const char *tag_name) {
+    char start_tag[256];
+    char end_tag[256];
+    snprintf(start_tag, sizeof(start_tag), "<%s>", tag_name);
+    snprintf(end_tag, sizeof(end_tag), "</%s>", tag_name);
+    
+    const char *start_pos = strstr(xml_str, start_tag);
+    if (!start_pos) return NULL;
+    
+    const char *end_pos = strstr(start_pos, end_tag);
+    if (!end_pos) return NULL;
+    
+    start_pos += strlen(start_tag);
+    int content_len = end_pos - start_pos;
+    
+    char *content = malloc(content_len + 1);
+    strncpy(content, start_pos, content_len);
+    content[content_len] = '\0';
+    
+    return content;
+}
+
+// ФУНКЦИЯ ДЛЯ ПАРСИНГА ПРОСТОГО XML
 gboolean parse_custom_xml(const char *xml_str, GraphData *graph_data) {
-    xmlDoc *doc = xmlReadMemory(xml_str, strlen(xml_str), NULL, NULL, 0);
-    if (!doc) {
-        g_print("Ошибка парсинга XML\n");
+    // Считаем количество entry
+    int data_count = 0;
+    const char *entry_pos = xml_str;
+    while ((entry_pos = strstr(entry_pos, "<entry>")) != NULL) {
+        data_count++;
+        entry_pos += 7; // Длина "<entry>"
+    }
+    
+    if (data_count == 0) {
+        g_print("Не найдено entry в XML\n");
         return FALSE;
     }
-
-    xmlNode *root = xmlDocGetRootElement(doc);
-    if (!root) {
-        g_print("Пустой XML документ\n");
-        xmlFreeDoc(doc);
-        return FALSE;
-    }
-
+    
     // СОЗДАЕМ 4 ПАРАМЕТРА ДЛЯ ГРАФИКОВ
     graph_data->series_count = 4;
     graph_data->series = malloc(graph_data->series_count * sizeof(DataSeries));
@@ -130,14 +151,6 @@ gboolean parse_custom_xml(const char *xml_str, GraphData *graph_data) {
     graph_data->series[3].color[1] = 0.0;
     graph_data->series[3].color[2] = 0.5;
 
-    // ПОДСЧИТЫВАЕМ КОЛИЧЕСТВО ТОЧЕК ДАННЫХ
-    int data_count = 0;
-    for (xmlNode *node = root->children; node; node = node->next) {
-        if (node->type == XML_ELEMENT_NODE && xmlStrcmp(node->name, (const xmlChar*)"entry") == 0) {
-            data_count++;
-        }
-    }
-
     // ВЫДЕЛЯЕМ ПАМЯТЬ ДЛЯ КАЖДОГО ПАРАМЕТРА
     for (int i = 0; i < graph_data->series_count; i++) {
         graph_data->series[i].data_count = data_count;
@@ -148,97 +161,91 @@ gboolean parse_custom_xml(const char *xml_str, GraphData *graph_data) {
     }
 
     // ЗАПОЛНЯЕМ ДАННЫЕ ИЗ XML
+    const char *current_pos = xml_str;
     int index = 0;
-    for (xmlNode *node = root->children; node; node = node->next) {
-        if (node->type == XML_ELEMENT_NODE && xmlStrcmp(node->name, (const xmlChar*)"entry") == 0) {
-            char *time_str = NULL;
-            char *illuminance_str = NULL;
-            char *motion_str = NULL;
-            char *temperature_str = NULL;
-            char *sound_str = NULL;
-            char *num_str = NULL;
+    
+    while ((current_pos = strstr(current_pos, "<entry>")) != NULL && index < data_count) {
+        const char *entry_end = strstr(current_pos, "</entry>");
+        if (!entry_end) break;
+        
+        // Выделяем содержимое entry
+        int entry_len = entry_end - current_pos;
+        char *entry_content = malloc(entry_len + 1);
+        strncpy(entry_content, current_pos, entry_len);
+        entry_content[entry_len] = '\0';
+        
+        // Извлекаем данные из тегов
+        char *time_str = extract_xml_tag(entry_content, "time");
+        char *illuminance_str = extract_xml_tag(entry_content, "illuminance");
+        char *motion_str = extract_xml_tag(entry_content, "current_motion");
+        char *temperature_str = extract_xml_tag(entry_content, "temperature");
+        char *sound_str = extract_xml_tag(entry_content, "sound");
+        char *num_str = extract_xml_tag(entry_content, "num");
 
-            // Читаем атрибуты и дочерние элементы
-            for (xmlNode *child = node->children; child; child = child->next) {
-                if (child->type == XML_ELEMENT_NODE) {
-                    char *content = (char*)xmlNodeGetContent(child);
-                    if (xmlStrcmp(child->name, (const xmlChar*)"time") == 0) {
-                        time_str = content;
-                    } else if (xmlStrcmp(child->name, (const xmlChar*)"illuminance") == 0) {
-                        illuminance_str = content;
-                    } else if (xmlStrcmp(child->name, (const xmlChar*)"current_motion") == 0) {
-                        motion_str = content;
-                    } else if (xmlStrcmp(child->name, (const xmlChar*)"temperature") == 0) {
-                        temperature_str = content;
-                    } else if (xmlStrcmp(child->name, (const xmlChar*)"sound") == 0) {
-                        sound_str = content;
-                    } else if (xmlStrcmp(child->name, (const xmlChar*)"num") == 0) {
-                        num_str = content;
-                    } else {
-                        xmlFree(content);
-                    }
-                }
+        // ОБРАБАТЫВАЕМ ДАННЫЕ
+        if (time_str) {
+            TimeStamp ts = parse_time_string(time_str);
+            // Сохраняем время для всех параметров
+            for (int i = 0; i < graph_data->series_count; i++) {
+                graph_data->series[i].times[index] = ts;
             }
-
-            // ОБРАБАТЫВАЕМ ДАННЫЕ
-            if (time_str) {
-                TimeStamp ts = parse_time_string(time_str);
-                // Сохраняем время для всех параметров
-                for (int i = 0; i < graph_data->series_count; i++) {
-                    graph_data->series[i].times[index] = ts;
-                }
-                xmlFree(time_str);
-            }
-
-            // ОСВЕЩЕННОСТЬ (illuminance)
-            if (illuminance_str) {
-                double value = get_xml_double(illuminance_str);
-                graph_data->series[0].values[index] = value;
-                if (value < graph_data->series[0].min_value) graph_data->series[0].min_value = value;
-                if (value > graph_data->series[0].max_value) graph_data->series[0].max_value = value;
-                xmlFree(illuminance_str);
-            }
-
-            // ДВИЖЕНИЕ (current_motion)
-            if (motion_str) {
-                double value = get_xml_double(motion_str);
-                graph_data->series[1].values[index] = value;
-                if (value < graph_data->series[1].min_value) graph_data->series[1].min_value = value;
-                if (value > graph_data->series[1].max_value) graph_data->series[1].max_value = value;
-                xmlFree(motion_str);
-            }
-
-            // ТЕМПЕРАТУРА (temperature)
-            if (temperature_str) {
-                double value = get_xml_double(temperature_str);
-                graph_data->series[2].values[index] = value;
-                if (value < graph_data->series[2].min_value) graph_data->series[2].min_value = value;
-                if (value > graph_data->series[2].max_value) graph_data->series[2].max_value = value;
-                xmlFree(temperature_str);
-            }
-
-            // ЗВУК (sound)
-            if (sound_str) {
-                double value = get_xml_double(sound_str);
-                graph_data->series[3].values[index] = value;
-                if (value < graph_data->series[3].min_value) graph_data->series[3].min_value = value;
-                if (value > graph_data->series[3].max_value) graph_data->series[3].max_value = value;
-                xmlFree(sound_str);
-            }
-
-            // НОМЕР (num) - берем из первой точки
-            if (index == 0 && num_str) {
-                graph_data->data_num = g_strdup(num_str);
-                xmlFree(num_str);
-            }
-
-            index++;
+            free(time_str);
         }
+
+        // ОСВЕЩЕННОСТЬ (illuminance)
+        if (illuminance_str) {
+            double value = get_xml_double(illuminance_str);
+            graph_data->series[0].values[index] = value;
+            if (value < graph_data->series[0].min_value) graph_data->series[0].min_value = value;
+            if (value > graph_data->series[0].max_value) graph_data->series[0].max_value = value;
+            free(illuminance_str);
+        }
+
+        // ДВИЖЕНИЕ (current_motion)
+        if (motion_str) {
+            double value = get_xml_double(motion_str);
+            graph_data->series[1].values[index] = value;
+            if (value < graph_data->series[1].min_value) graph_data->series[1].min_value = value;
+            if (value > graph_data->series[1].max_value) graph_data->series[1].max_value = value;
+            free(motion_str);
+        }
+
+        // ТЕМПЕРАТУРА (temperature)
+        if (temperature_str) {
+            double value = get_xml_double(temperature_str);
+            graph_data->series[2].values[index] = value;
+            if (value < graph_data->series[2].min_value) graph_data->series[2].min_value = value;
+            if (value > graph_data->series[2].max_value) graph_data->series[2].max_value = value;
+            free(temperature_str);
+        }
+
+        // ЗВУК (sound)
+        if (sound_str) {
+            double value = get_xml_double(sound_str);
+            graph_data->series[3].values[index] = value;
+            if (value < graph_data->series[3].min_value) graph_data->series[3].min_value = value;
+            if (value > graph_data->series[3].max_value) graph_data->series[3].max_value = value;
+            free(sound_str);
+        }
+
+        // НОМЕР (num) - берем из первой точки
+        if (index == 0 && num_str) {
+            graph_data->data_num = g_strdup(num_str);
+            free(num_str);
+        } else if (num_str) {
+            free(num_str);
+        }
+
+        free(entry_content);
+        current_pos = entry_end + 8; // Длина "</entry>"
+        index++;
     }
     
-    xmlFreeDoc(doc);
+    g_print("Успешно загружено %d точек данных\n", data_count);
     return TRUE;
 }
+
+// Остальные функции остаются без изменений...
 
 // ФУНКЦИЯ ДЛЯ ПОИСКА ДИАПАЗОНА ВРЕМЕНИ ДЛЯ ОДНОГО ГРАФИКА
 void find_time_range_single(GraphData *graph_data, double *min_time, double *max_time, int series_index) {
@@ -666,9 +673,15 @@ gboolean load_xml_from_file(const char *filename, GraphData *graph_data) {
     fseek(file, 0, SEEK_SET);
 
     char *xml_str = malloc(file_size + 1);
-    fread(xml_str, 1, file_size, file);
+    size_t bytes_read = fread(xml_str, 1, file_size, file);
     xml_str[file_size] = '\0';
     fclose(file);
+
+    if (bytes_read != file_size) {
+        g_print("Ошибка чтения файла\n");
+        free(xml_str);
+        return FALSE;
+    }
 
     gboolean result = parse_custom_xml(xml_str, graph_data);
     free(xml_str);
@@ -691,9 +704,6 @@ void free_graph_data(GraphData *graph_data) {
 
 int main(int argc, char *argv[]) {
     gtk_init(&argc, &argv);
-
-    // Инициализация библиотеки XML
-    xmlInitParser();
 
     GtkWidget *window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(GTK_WINDOW(window), "Мониторинг сенсоров - 4 типа графиков");
@@ -746,9 +756,6 @@ int main(int argc, char *argv[]) {
 
     // Освобождаем память (достаточно освободить одну копию, так как данные одинаковые)
     free_graph_data(&graph_data);
-    
-    // Очищаем XML парсер
-    xmlCleanupParser();
     
     return 0;
 }
