@@ -1,0 +1,205 @@
+<VKID><data>
+	<current_motion>8</current_motion>
+	<illuminance />
+	<temperature />
+	<sound />
+	<time>2025-10-25 11:45:31.060243</time>
+	<num>25</num>
+</data><data>
+	<current_motion>8</current_motion>
+	<illuminance>471.36</illuminance>
+	<temperature />
+	<sound />
+	<time>2025-10-25 11:45:36.063166</time>
+	<num>25</num>
+</data><data>
+	<current_motion>8</current_motion>
+	<illuminance>471.36</illuminance>
+	<temperature>24.3</temperature>
+	<sound />
+	<time>2025-10-25 11:45:41.065193</time>
+	<num>25</num>
+</data><data>
+	<current_motion>8</current_motion>
+	<illuminance>471.36</illuminance>
+	<temperature>24.3</temperature>
+	<sound>38.54</sound>
+	<time>2025-10-25 11:45:46.066796</time>
+	<num>25</num>
+</data><data>
+	<current_motion>8</current_motion>
+	<illuminance>471.36</illuminance>
+	<temperature>24.3</temperature>
+	<sound>42.62</sound>
+	<time>2025-10-25 11:45:51.068139</time>
+	<num>25</num>
+</data><data>
+	<current_motion>11</current_motion>
+	<illuminance>471.36</illuminance>
+	<temperature>24.3</temperature>
+	<sound>42.62</sound>
+	<time>2025-10-25 11:45:56.070115</time>
+	<num>25</num>
+</data><data>
+	<current_motion>11</current_motion>
+	<illuminance>471.36</illuminance>
+	<temperature>24.3</temperature>
+	<sound>38.68</sound>
+	<time>2025-10-25 11:46:01.071452</time>
+	<num>25</num>
+</data><data>
+	<current_motion>14</current_motion>
+	<illuminance>471.36</illuminance>
+	<temperature>24.3</temperature>
+	<sound>38.68</sound>
+	<time>2025-10-25 11:46:06.072363</time>
+	<num>25</num>
+</data><data>
+	<current_motion>14</current_motion>
+	<illuminance>471.36</illuminance>
+	<temperature>24.3</temperature>
+	<sound>41.09</sound>
+	<time>2025-10-25 11:46:11.074111</time>
+	<num>25</num>
+</data><data>
+	<current_motion>15</current_motion>
+	<illuminance>471.36</illuminance>
+	<temperature>24.3</temperature>
+	<sound>41.09</sound>
+	<time>2025-10-25 11:46:16.075280</time>
+	<num>25</num>
+</data><data>
+	<current_motion>15</current_motion>
+	<illuminance>471.36</illuminance>
+	<temperature>24.3</temperature>
+	<sound>44.39</sound>
+	<time>2025-10-25 11:46:21.077188</time>
+	<num>25</num>
+</data><data>
+	<current_motion>12</current_motion>
+	<illuminance>471.36</illuminance>
+	<temperature>24.3</temperature>
+	<sound>44.39</sound>
+	<time>2025-10-25 11:46:26.078410</time>
+	<num>25</num>
+</data><data>
+	<current_motion>12</current_motion>
+	<illuminance>471.36</illuminance>
+	<temperature>24.3</temperature>
+	<sound>35.22</sound>
+	<time>2025-10-25 11:46:31.080147</time>
+	<num>25</num>
+</data><data>
+	<current_motion>10</current_motion>
+	<illuminance>471.36</illuminance>
+	<temperature>24.3</temperature>
+	<sound>35.22</sound>
+	<time>2025-10-25 11:46:36.081347</time>
+	<num>25</num>
+</data><data>
+	<current_motion>10</current_motion>
+	<illuminance>471.36</illuminance>
+	<temperature>24.3</temperature>
+	<sound>32.5</sound>
+	<time>2025-10-25 11:46:41.082877</time>
+	<num>25</num>
+</data><data>
+	<current_motion>10</current_motion>
+	<illuminance>471.36</illuminance>
+	<temperature>24.3</temperature>
+	<sound>40.63</sound>
+	<time>2025-10-25 11:46:46.083970</time>
+	<num>25</num>
+</data><data>
+	<current_motion>9</current_motion>
+	<illuminance>471.36</illuminance>
+	<temperature>24.3</temperature>
+	<sound>40.63</sound>
+	<time>2025-10-25 11:46:51.086330</time>
+	<num>25</num>
+</data><data>
+	<current_motion>9</current_motion>
+	<illuminance>471.36</illuminance>
+	<temperature>24.3</temperature>
+	<sound>35.57</sound>
+	<time>2025-10-25 11:46:56.088314</time>
+	<num>25</num>
+</data><data>
+	<current_motion>7</current_motion>
+	<illuminance>471.36</illuminance>
+	<temperature>24.3</temperature>
+	<sound>35.57</sound>
+	<time>2025-10-25 11:47:01.089828</time>
+	<num>25</num>
+</data><data>
+	<current_motion>7</current_motion>
+	<illuminance>471.36</illuminance>
+	<temperature>24.3</temperature>
+	<sound>35.28</sound>
+	<time>2025-10-25 11:47:06.091281</time>
+	<num>25</num>
+</data><data>
+	<current_motion>15</current_motion>
+	<illuminance>471.36</illuminance>
+	<temperature>24.3</temperature>
+	<sound>35.28</sound>
+	<time>2025-10-25 11:47:11.092606</time>
+	<num>25</num>
+</data><data>
+	<current_motion>15</current_motion>
+	<illuminance>471.36</illuminance>
+	<temperature>24.3</temperature>
+	<sound>34.59</sound>
+	<time>2025-10-25 11:47:16.093921</time>
+	<num>25</num>
+</data><data>
+	<current_motion>13</current_motion>
+	<illuminance>471.36</illuminance>
+	<temperature>24.3</temperature>
+	<sound>34.59</sound>
+	<time>2025-10-25 11:47:21.095430</time>
+	<num>25</num>
+</data><data>
+	<current_motion>13</current_motion>
+	<illuminance>471.36</illuminance>
+	<temperature>24.3</temperature>
+	<sound>39.31</sound>
+	<time>2025-10-25 11:47:26.096968</time>
+	<num>25</num>
+</data><data>
+	<current_motion>10</current_motion>
+	<illuminance>471.36</illuminance>
+	<temperature>24.3</temperature>
+	<sound>39.31</sound>
+	<time>2025-10-25 11:47:33.183318</time>
+	<num>25</num>
+</data><data>
+	<current_motion>10</current_motion>
+	<illuminance>471.36</illuminance>
+	<temperature>24.3</temperature>
+	<sound>39.31</sound>
+	<time>2025-10-25 11:47:38.184716</time>
+	<num>25</num>
+</data><data>
+	<current_motion>10</current_motion>
+	<illuminance>471.36</illuminance>
+	<temperature>24.3</temperature>
+	<sound>39.31</sound>
+	<time>2025-10-25 11:47:43.186742</time>
+	<num>25</num>
+</data><data>
+	<current_motion>10</current_motion>
+	<illuminance>471.36</illuminance>
+	<temperature>24.3</temperature>
+	<sound>51.08</sound>
+	<time>2025-10-25 11:47:48.188257</time>
+	<num>25</num>
+</data><data>
+	<current_motion>10</current_motion>
+	<illuminance>471.36</illuminance>
+	<temperature>24.3</temperature>
+	<sound>47.16</sound>
+	<time>2025-10-25 11:47:53.190183</time>
+	<num>25</num>
+</data>
+</VKID>

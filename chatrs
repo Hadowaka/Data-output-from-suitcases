@@ -1,0 +1,503 @@
+#include <gtk/gtk.h>
+#include <json-c/json.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+#include <math.h>
+
+// Структура для хранения временной метки с микросекундами
+typedef struct {
+    int year;
+    int month;
+    int day;
+    int hour;
+    int minute;
+    int second;
+    int microsecond;
+} TimeStamp;
+
+// Структура для хранения данных одного параметра
+typedef struct {
+    char *name;           // Название параметра (illuminance, temperature, etc.)
+    double *values;       // Массив значений
+    TimeStamp *times;     // Массив временных меток
+    int data_count;       // Количество точек
+    double color[3];      // Цвет графика [R, G, B]
+    double min_value;     // Минимальное значение
+    double max_value;     // Максимальное значение
+} DataSeries;
+
+// Основная структура для хранения всех данных
+typedef struct {
+    GtkWidget *drawing_area;
+    DataSeries *series;          // Массив параметров
+    int series_count;            // Количество параметров
+    char *title;
+    char *x_label;
+    char *y_label;
+    char *data_num;              // ★ НОМЕР ИЗ JSON (константа)
+} GraphData;
+
+// ★ ФУНКЦИЯ ДЛЯ ПАРСИНГА ВРЕМЕНИ С МИКРОСЕКУНДАМИ
+TimeStamp parse_time_string(const char *time_str) {
+    TimeStamp ts = {0};
+    
+    // Формат с микросекундами: "YYYY-MM-DD HH:MM:SS.mmmmmm"
+    if (sscanf(time_str, "%d-%d-%d %d:%d:%d.%d", 
+               &ts.year, &ts.month, &ts.day,
+               &ts.hour, &ts.minute, &ts.second, &ts.microsecond) == 7) {
+        return ts;
+    }
+    
+    // Формат без микросекунд
+    if (sscanf(time_str, "%d-%d-%d %d:%d:%d", 
+               &ts.year, &ts.month, &ts.day,
+               &ts.hour, &ts.minute, &ts.second) == 6) {
+        ts.microsecond = 0;
+        return ts;
+    }
+    
+    return ts;
+}
+
+// ★ ФУНКЦИЯ ДЛЯ ПРЕОБРАЗОВАНИЯ ВРЕМЕНИ В ЧИСЛО
+double time_to_double(TimeStamp ts) {
+    struct tm time_struct = {0};
+    time_struct.tm_year = ts.year - 1900;
+    time_struct.tm_mon = ts.month - 1;
+    time_struct.tm_mday = ts.day;
+    time_struct.tm_hour = ts.hour;
+    time_struct.tm_min = ts.minute;
+    time_struct.tm_sec = ts.second;
+    
+    time_t seconds = mktime(&time_struct);
+    double total_time = (double)seconds + (double)ts.microsecond / 1000000.0;
+    
+    return total_time;
+}
+
+// ★ ФУНКЦИЯ ДЛЯ ПОЛУЧЕНИЯ DOUBLE ИЗ JSON ОБЪЕКТА (обрабатывает строки и числа)
+double get_json_double(struct json_object *obj) {
+    if (json_object_is_type(obj, json_type_double)) {
+        return json_object_get_double(obj);
+    } else if (json_object_is_type(obj, json_type_int)) {
+        return (double)json_object_get_int(obj);
+    } else if (json_object_is_type(obj, json_type_string)) {
+        const char *str = json_object_get_string(obj);
+        return atof(str); // Преобразуем строку в double
+    }
+    return 0.0;
+}
+
+// ★ ФУНКЦИЯ ДЛЯ ПАРСИНГА ВАШЕГО ФОРМАТА JSON
+gboolean parse_custom_json(const char *json_str, GraphData *graph_data) {
+    struct json_object *root = json_tokener_parse(json_str);
+    if (!root) {
+        g_print("Ошибка парсинга JSON\n");
+        return FALSE;
+    }
+
+    // ★ СОЗДАЕМ 4 ПАРАМЕТРА ДЛЯ ГРАФИКОВ
+    graph_data->series_count = 4;
+    graph_data->series = malloc(graph_data->series_count * sizeof(DataSeries));
+    
+    // Инициализируем параметры
+    // Освещенность
+    graph_data->series[0].name = g_strdup("Освещенность");
+    graph_data->series[0].color[0] = 1.0; // Красный
+    graph_data->series[0].color[1] = 0.5;
+    graph_data->series[0].color[2] = 0.0;
+    
+    // Движение
+    graph_data->series[1].name = g_strdup("Движение");
+    graph_data->series[1].color[0] = 0.0; // Зеленый
+    graph_data->series[1].color[1] = 0.7;
+    graph_data->series[1].color[2] = 0.0;
+    
+    // Температура
+    graph_data->series[2].name = g_strdup("Температура");
+    graph_data->series[2].color[0] = 0.0; // Синий
+    graph_data->series[2].color[1] = 0.0;
+    graph_data->series[2].color[2] = 1.0;
+    
+    // Звук
+    graph_data->series[3].name = g_strdup("Звук");
+    graph_data->series[3].color[0] = 0.5; // Фиолетовый
+    graph_data->series[3].color[1] = 0.0;
+    graph_data->series[3].color[2] = 0.5;
+
+    // ★ ПОДСЧИТЫВАЕМ КОЛИЧЕСТВО ТОЧЕК ДАННЫХ
+    int data_count = 0;
+    json_object_object_foreach(root, key, val) {
+        if (atoi(key) > 0) {
+            data_count++;
+        }
+    }
+
+    // ★ ВЫДЕЛЯЕМ ПАМЯТЬ ДЛЯ КАЖДОГО ПАРАМЕТРА
+    for (int i = 0; i < graph_data->series_count; i++) {
+        graph_data->series[i].data_count = data_count;
+        graph_data->series[i].values = malloc(data_count * sizeof(double));
+        graph_data->series[i].times = malloc(data_count * sizeof(TimeStamp));
+        graph_data->series[i].min_value = 1e9;
+        graph_data->series[i].max_value = -1e9;
+    }
+
+    // ★ ЗАПОЛНЯЕМ ДАННЫЕ ИЗ JSON
+    int index = 0;
+    json_object_object_foreach(root, key, val) {
+        if (atoi(key) > 0) {
+            struct json_object *time_obj, *motion_obj, *illuminance_obj, *temp_obj, *sound_obj, *num_obj;
+            
+            // ★ ВРЕМЯ
+            if (json_object_object_get_ex(val, "time", &time_obj)) {
+                const char *time_str = json_object_get_string(time_obj);
+                TimeStamp ts = parse_time_string(time_str);
+                
+                // Сохраняем время для всех параметров
+                for (int i = 0; i < graph_data->series_count; i++) {
+                    graph_data->series[i].times[index] = ts;
+                }
+            }
+            
+            // ★ ОСВЕЩЕННОСТЬ (illuminance)
+            if (json_object_object_get_ex(val, "illuminance", &illuminance_obj)) {
+                double value = get_json_double(illuminance_obj);
+                graph_data->series[0].values[index] = value;
+                if (value < graph_data->series[0].min_value) graph_data->series[0].min_value = value;
+                if (value > graph_data->series[0].max_value) graph_data->series[0].max_value = value;
+            }
+            
+            // ★ ДВИЖЕНИЕ (current_motion)
+            if (json_object_object_get_ex(val, "current_motion", &motion_obj)) {
+                double value = get_json_double(motion_obj);
+                graph_data->series[1].values[index] = value;
+                if (value < graph_data->series[1].min_value) graph_data->series[1].min_value = value;
+                if (value > graph_data->series[1].max_value) graph_data->series[1].max_value = value;
+            }
+            
+            // ★ ТЕМПЕРАТУРА (temperature)
+            if (json_object_object_get_ex(val, "temperature", &temp_obj)) {
+                double value = get_json_double(temp_obj);
+                graph_data->series[2].values[index] = value;
+                if (value < graph_data->series[2].min_value) graph_data->series[2].min_value = value;
+                if (value > graph_data->series[2].max_value) graph_data->series[2].max_value = value;
+            }
+            
+            // ★ ЗВУК (sound)
+            if (json_object_object_get_ex(val, "sound", &sound_obj)) {
+                double value = get_json_double(sound_obj);
+                graph_data->series[3].values[index] = value;
+                if (value < graph_data->series[3].min_value) graph_data->series[3].min_value = value;
+                if (value > graph_data->series[3].max_value) graph_data->series[3].max_value = value;
+            }
+            
+            // ★ НОМЕР (num) - берем из первой точки
+            if (index == 0 && json_object_object_get_ex(val, "num", &num_obj)) {
+                const char *num_str = json_object_get_string(num_obj);
+                graph_data->data_num = g_strdup(num_str);
+            }
+            
+            index++;
+        }
+    }
+    
+    json_object_put(root);
+    return TRUE;
+}
+
+// ★ ФУНКЦИЯ ДЛЯ ПОИСКА ОБЩЕГО ДИАПАЗОНА ВРЕМЕНИ
+void find_time_range(GraphData *graph_data, double *min_time, double *max_time) {
+    if (graph_data->series_count == 0) return;
+    
+    *min_time = time_to_double(graph_data->series[0].times[0]);
+    *max_time = time_to_double(graph_data->series[0].times[0]);
+    
+    for (int i = 0; i < graph_data->series_count; i++) {
+        DataSeries *series = &graph_data->series[i];
+        for (int j = 0; j < series->data_count; j++) {
+            double current_time = time_to_double(series->times[j]);
+            if (current_time < *min_time) *min_time = current_time;
+            if (current_time > *max_time) *max_time = current_time;
+        }
+    }
+}
+
+// ★ ФУНКЦИЯ ДЛЯ ПОИСКА ОБЩЕГО ДИАПАЗОНА ЗНАЧЕНИЙ (для нормализации)
+void find_value_range(GraphData *graph_data, double *min_val, double *max_val) {
+    if (graph_data->series_count == 0) return;
+    
+    *min_val = graph_data->series[0].min_value;
+    *max_val = graph_data->series[0].max_value;
+    
+    for (int i = 1; i < graph_data->series_count; i++) {
+        if (graph_data->series[i].min_value < *min_val) *min_val = graph_data->series[i].min_value;
+        if (graph_data->series[i].max_value > *max_val) *max_val = graph_data->series[i].max_value;
+    }
+}
+
+// Функция отрисовки всех графиков
+gboolean draw_callback(GtkWidget *widget, cairo_t *cr, gpointer user_data) {
+    GraphData *graph_data = (GraphData *)user_data;
+    
+    if (graph_data->series_count == 0) return FALSE;
+
+    GtkAllocation allocation;
+    gtk_widget_get_allocation(widget, &allocation);
+    int width = allocation.width;
+    int height = allocation.height;
+
+    // ★ НАХОДИМ ОБЩИЙ ДИАПАЗОНА ВРЕМЕНИ И ЗНАЧЕНИЙ
+    double min_time, max_time, min_val, max_val;
+    find_time_range(graph_data, &min_time, &max_time);
+    find_value_range(graph_data, &min_val, &max_val);
+
+    // Добавляем отступы
+    double time_range = max_time - min_time;
+    double val_range = max_val - min_val;
+    double padding = 0.1;
+    
+    min_time -= time_range * padding;
+    max_time += time_range * padding;
+    min_val -= val_range * padding;
+    max_val += val_range * padding;
+
+    // Вычисляем масштаб
+    double scale_x = width / (max_time - min_time);
+    double scale_y = height / (max_val - min_val);
+
+    // Очищаем область
+    cairo_set_source_rgb(cr, 1, 1, 1);
+    cairo_paint(cr);
+
+    // ★ РИСУЕМ СЕТКУ
+    cairo_set_source_rgb(cr, 0.9, 0.9, 0.9);
+    cairo_set_line_width(cr, 0.5);
+    
+    // Вертикальные линии (время)
+    for (int i = 1; i <= 5; i++) {
+        double x = (double)width * i / 6.0;
+        cairo_move_to(cr, x, 0);
+        cairo_line_to(cr, x, height);
+    }
+    
+    // Горизонтальные линии (значения)
+    for (int i = 1; i <= 5; i++) {
+        double y = (double)height * i / 6.0;
+        cairo_move_to(cr, 0, y);
+        cairo_line_to(cr, width, y);
+    }
+    cairo_stroke(cr);
+
+    // Рисуем оси координат
+    cairo_set_source_rgb(cr, 0, 0, 0);
+    cairo_set_line_width(cr, 1);
+    
+    // Ось Y
+    cairo_move_to(cr, 50, 0);
+    cairo_line_to(cr, 50, height - 30);
+    
+    // Ось X
+    cairo_move_to(cr, 50, height - 30);
+    cairo_line_to(cr, width, height - 30);
+    cairo_stroke(cr);
+
+    // ★ РИСУЕМ ПОДПИСИ ОСЕЙ
+    cairo_set_source_rgb(cr, 0, 0, 0);
+    cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+    cairo_set_font_size(cr, 12);
+    
+    // Подпись оси Y
+    cairo_move_to(cr, 10, height / 2);
+    cairo_show_text(cr, "Значения");
+    
+    // Подпись оси X
+    cairo_move_to(cr, width / 2 - 20, height - 10);
+    cairo_show_text(cr, "Время");
+
+    // ★ РИСУЕМ ЗАГОЛОВОК С НОМЕРОМ
+    cairo_set_source_rgb(cr, 0, 0, 0);
+    cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+    cairo_set_font_size(cr, 14);
+    
+    char title[256];
+    if (graph_data->data_num) {
+        snprintf(title, sizeof(title), "Мониторинг параметров (Номер: %s)", graph_data->data_num);
+    } else {
+        snprintf(title, sizeof(title), "Мониторинг параметров");
+    }
+    cairo_move_to(cr, width / 2 - 100, 25);
+    cairo_show_text(cr, title);
+
+    // ★ РИСУЕМ ВСЕ ГРАФИКИ
+    for (int s = 0; s < graph_data->series_count; s++) {
+        DataSeries *series = &graph_data->series[s];
+        
+        // Пропускаем серии без данных
+        if (series->data_count == 0) continue;
+        
+        cairo_set_source_rgb(cr, series->color[0], series->color[1], series->color[2]);
+        cairo_set_line_width(cr, 2);
+
+        // Рисуем линии графика
+        for (int i = 0; i < series->data_count; i++) {
+            double x = 50 + (time_to_double(series->times[i]) - min_time) * scale_x;
+            double y = (height - 30) - (series->values[i] - min_val) * scale_y;
+            
+            if (i == 0) {
+                cairo_move_to(cr, x, y);
+            } else {
+                cairo_line_to(cr, x, y);
+            }
+        }
+        cairo_stroke(cr);
+
+        // Рисуем точки данных
+        for (int i = 0; i < series->data_count; i++) {
+            double x = 50 + (time_to_double(series->times[i]) - min_time) * scale_x;
+            double y = (height - 30) - (series->values[i] - min_val) * scale_y;
+            
+            cairo_arc(cr, x, y, 3, 0, 2 * G_PI);
+            cairo_fill(cr);
+        }
+    }
+
+    // ★ РИСУЕМ ЛЕГЕНДУ
+    cairo_set_font_size(cr, 10);
+    int legend_y = 50;
+    
+    for (int s = 0; s < graph_data->series_count; s++) {
+        DataSeries *series = &graph_data->series[s];
+        
+        // Цветной прямоугольник
+        cairo_set_source_rgb(cr, series->color[0], series->color[1], series->color[2]);
+        cairo_rectangle(cr, width - 200, legend_y - 8, 15, 8);
+        cairo_fill(cr);
+        
+        // Текст легенды
+        cairo_set_source_rgb(cr, 0, 0, 0);
+        cairo_move_to(cr, width - 180, legend_y);
+        
+        char legend_text[128];
+        snprintf(legend_text, sizeof(legend_text), "%s (min: %.1f, max: %.1f)", 
+                 series->name, series->min_value, series->max_value);
+        cairo_show_text(cr, legend_text);
+        
+        legend_y += 20;
+    }
+
+    // ★ РИСУЕМ ПОДПИСИ ВРЕМЕНИ НА ОСИ X
+    cairo_set_font_size(cr, 9);
+    cairo_set_source_rgb(cr, 0, 0, 0);
+    
+    int num_time_ticks = 5;
+    for (int i = 0; i <= num_time_ticks; i++) {
+        double time_ratio = (double)i / (double)num_time_ticks;
+        double current_time = min_time + time_ratio * (max_time - min_time);
+        double x_pos = 50 + (current_time - min_time) * scale_x;
+        
+        time_t raw_time = (time_t)current_time;
+        struct tm *time_info = localtime(&raw_time);
+        
+        char time_label[32];
+        snprintf(time_label, sizeof(time_label), "%02d:%02d", 
+                 time_info->tm_hour, time_info->tm_min);
+        
+        cairo_move_to(cr, x_pos - 10, height - 15);
+        cairo_show_text(cr, time_label);
+        
+        // Черточки на оси
+        cairo_move_to(cr, x_pos, height - 35);
+        cairo_line_to(cr, x_pos, height - 25);
+        cairo_stroke(cr);
+    }
+
+    // ★ РИСУЕМ ПОДПИСИ ЗНАЧЕНИЙ НА ОСИ Y
+    int num_val_ticks = 5;
+    for (int i = 0; i <= num_val_ticks; i++) {
+        double val_ratio = (double)i / (double)num_val_ticks;
+        double current_val = min_val + val_ratio * (max_val - min_val);
+        double y_pos = (height - 30) - (current_val - min_val) * scale_y;
+        
+        char val_label[32];
+        snprintf(val_label, sizeof(val_label), "%.1f", current_val);
+        
+        cairo_move_to(cr, 25, y_pos + 3);
+        cairo_show_text(cr, val_label);
+        
+        // Черточки на оси
+        cairo_move_to(cr, 45, y_pos);
+        cairo_line_to(cr, 55, y_pos);
+        cairo_stroke(cr);
+    }
+
+    return FALSE;
+}
+
+// Функция для загрузки JSON из файла
+gboolean load_json_from_file(const char *filename, GraphData *graph_data) {
+    FILE *file = fopen(filename, "r");
+    if (!file) {
+        g_print("Не удалось открыть файл: %s\n", filename);
+        return FALSE;
+    }
+
+    fseek(file, 0, SEEK_END);
+    long file_size = ftell(file);
+    fseek(file, 0, SEEK_SET);
+
+    char *json_str = malloc(file_size + 1);
+    fread(json_str, 1, file_size, file);
+    json_str[file_size] = '\0';
+    fclose(file);
+
+    gboolean result = parse_custom_json(json_str, graph_data);
+    free(json_str);
+    return result;
+}
+
+// Функция для освобождения памяти
+void free_graph_data(GraphData *graph_data) {
+    for (int i = 0; i < graph_data->series_count; i++) {
+        free(graph_data->series[i].values);
+        free(graph_data->series[i].times);
+        g_free(graph_data->series[i].name);
+    }
+    free(graph_data->series);
+    g_free(graph_data->title);
+    g_free(graph_data->x_label);
+    g_free(graph_data->y_label);
+    g_free(graph_data->data_num);
+}
+
+int main(int argc, char *argv[]) {
+    gtk_init(&argc, &argv);
+
+    GtkWidget *window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    gtk_window_set_title(GTK_WINDOW(window), "Мониторинг сенсоров");
+    gtk_window_set_default_size(GTK_WINDOW(window), 1000, 700);
+    g_signal_connect(window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
+
+    GraphData graph_data = {0};
+    graph_data.drawing_area = gtk_drawing_area_new();
+    g_signal_connect(graph_data.drawing_area, "draw", 
+                    G_CALLBACK(draw_callback), &graph_data);
+
+    if (argc > 1) {
+        if (!load_json_from_file(argv[1], &graph_data)) {
+            g_print("Ошибка загрузки файла: %s\n", argv[1]);
+            return 1;
+        }
+    } else {
+        g_print("Использование: %s <json-файл>\n", argv[0]);
+        return 1;
+    }
+
+    gtk_container_add(GTK_CONTAINER(window), graph_data.drawing_area);
+    gtk_widget_show_all(window);
+    gtk_main();
+
+    free_graph_data(&graph_data);
+    return 0;
+}

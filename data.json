@@ -1,0 +1,204 @@
+{"1": {
+    "current_motion": "8",
+    "illuminance": 0,
+    "temperature": 0,
+    "sound": 0,
+    "time": "2025-10-25 11:45:31.060243",
+    "num": "25"
+},"2": {
+    "current_motion": "8",
+    "illuminance": "471.36",
+    "temperature": 0,
+    "sound": 0,
+    "time": "2025-10-25 11:45:36.063166",
+    "num": "25"
+},"3": {
+    "current_motion": "8",
+    "illuminance": "471.36",
+    "temperature": "24.3",
+    "sound": 0,
+    "time": "2025-10-25 11:45:41.065193",
+    "num": "25"
+},"4": {
+    "current_motion": "8",
+    "illuminance": "471.36",
+    "temperature": "24.3",
+    "sound": "38.54",
+    "time": "2025-10-25 11:45:46.066796",
+    "num": "25"
+},"5": {
+    "current_motion": "8",
+    "illuminance": "471.36",
+    "temperature": "24.3",
+    "sound": "42.62",
+    "time": "2025-10-25 11:45:51.068139",
+    "num": "25"
+},"6": {
+    "current_motion": "11",
+    "illuminance": "471.36",
+    "temperature": "24.3",
+    "sound": "42.62",
+    "time": "2025-10-25 11:45:56.070115",
+    "num": "25"
+},"7": {
+    "current_motion": "11",
+    "illuminance": "471.36",
+    "temperature": "24.3",
+    "sound": "38.68",
+    "time": "2025-10-25 11:46:01.071452",
+    "num": "25"
+},"8": {
+    "current_motion": "14",
+    "illuminance": "471.36",
+    "temperature": "24.3",
+    "sound": "38.68",
+    "time": "2025-10-25 11:46:06.072363",
+    "num": "25"
+},"9": {
+    "current_motion": "14",
+    "illuminance": "471.36",
+    "temperature": "24.3",
+    "sound": "41.09",
+    "time": "2025-10-25 11:46:11.074111",
+    "num": "25"
+},"10": {
+    "current_motion": "15",
+    "illuminance": "471.36",
+    "temperature": "24.3",
+    "sound": "41.09",
+    "time": "2025-10-25 11:46:16.075280",
+    "num": "25"
+},"11": {
+    "current_motion": "15",
+    "illuminance": "471.36",
+    "temperature": "24.3",
+    "sound": "44.39",
+    "time": "2025-10-25 11:46:21.077188",
+    "num": "25"
+},"12": {
+    "current_motion": "12",
+    "illuminance": "471.36",
+    "temperature": "24.3",
+    "sound": "44.39",
+    "time": "2025-10-25 11:46:26.078410",
+    "num": "25"
+},"13": {
+    "current_motion": "12",
+    "illuminance": "471.36",
+    "temperature": "24.3",
+    "sound": "35.22",
+    "time": "2025-10-25 11:46:31.080147",
+    "num": "25"
+},"14": {
+    "current_motion": "10",
+    "illuminance": "471.36",
+    "temperature": "24.3",
+    "sound": "35.22",
+    "time": "2025-10-25 11:46:36.081347",
+    "num": "25"
+},"15": {
+    "current_motion": "10",
+    "illuminance": "471.36",
+    "temperature": "24.3",
+    "sound": "32.5",
+    "time": "2025-10-25 11:46:41.082877",
+    "num": "25"
+},"16": {
+    "current_motion": "10",
+    "illuminance": "471.36",
+    "temperature": "24.3",
+    "sound": "40.63",
+    "time": "2025-10-25 11:46:46.083970",
+    "num": "25"
+},"17": {
+    "current_motion": "9",
+    "illuminance": "471.36",
+    "temperature": "24.3",
+    "sound": "40.63",
+    "time": "2025-10-25 11:46:51.086330",
+    "num": "25"
+},"18": {
+    "current_motion": "9",
+    "illuminance": "471.36",
+    "temperature": "24.3",
+    "sound": "35.57",
+    "time": "2025-10-25 11:46:56.088314",
+    "num": "25"
+},"19": {
+    "current_motion": "7",
+    "illuminance": "471.36",
+    "temperature": "24.3",
+    "sound": "35.57",
+    "time": "2025-10-25 11:47:01.089828",
+    "num": "25"
+},"20": {
+    "current_motion": "7",
+    "illuminance": "471.36",
+    "temperature": "24.3",
+    "sound": "35.28",
+    "time": "2025-10-25 11:47:06.091281",
+    "num": "25"
+},"21": {
+    "current_motion": "15",
+    "illuminance": "471.36",
+    "temperature": "24.3",
+    "sound": "35.28",
+    "time": "2025-10-25 11:47:11.092606",
+    "num": "25"
+},"22": {
+    "current_motion": "15",
+    "illuminance": "471.36",
+    "temperature": "24.3",
+    "sound": "34.59",
+    "time": "2025-10-25 11:47:16.093921",
+    "num": "25"
+},"23": {
+    "current_motion": "13",
+    "illuminance": "471.36",
+    "temperature": "24.3",
+    "sound": "34.59",
+    "time": "2025-10-25 11:47:21.095430",
+    "num": "25"
+},"24": {
+    "current_motion": "13",
+    "illuminance": "471.36",
+    "temperature": "24.3",
+    "sound": "39.31",
+    "time": "2025-10-25 11:47:26.096968",
+    "num": "25"
+},"25": {
+    "current_motion": "10",
+    "illuminance": "471.36",
+    "temperature": "24.3",
+    "sound": "39.31",
+    "time": "2025-10-25 11:47:33.183318",
+    "num": "25"
+},"26": {
+    "current_motion": "10",
+    "illuminance": "471.36",
+    "temperature": "24.3",
+    "sound": "39.31",
+    "time": "2025-10-25 11:47:38.184716",
+    "num": "25"
+},"27": {
+    "current_motion": "10",
+    "illuminance": "471.36",
+    "temperature": "24.3",
+    "sound": "39.31",
+    "time": "2025-10-25 11:47:43.186742",
+    "num": "25"
+},"28": {
+    "current_motion": "10",
+    "illuminance": "471.36",
+    "temperature": "24.3",
+    "sound": "51.08",
+    "time": "2025-10-25 11:47:48.188257",
+    "num": "25"
+},"29": {
+    "current_motion": "10",
+    "illuminance": "471.36",
+    "temperature": "24.3",
+    "sound": "47.16",
+    "time": "2025-10-25 11:47:53.190183",
+    "num": "25"
+}}
